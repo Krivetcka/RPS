@@ -1,57 +1,57 @@
 {
-  "database": "/Users/macbook/Desktop/RPS labs 3/tests/data/integration.db",
-  "createdAt": "2025-11-25T21:25:25.263Z",
+  "database": "C:\\Users\\rusla\\Desktop\\Лаб3\\tests\\data\\integration.db",
+  "createdAt": "2025-12-09T17:56:25.142Z",
   "insert": [
     {
       "size": 100,
-      "durationMs": 5.76,
+      "durationMs": 4.73,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 32.24,
+      "durationMs": 26.62,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 363.1,
+      "durationMs": 293.56,
       "success": true
     }
   ],
   "fetchSort": [
     {
       "size": 100,
-      "durationMs": 2.7,
-      "avgPerArrayMs": 0.027,
+      "durationMs": 2.79,
+      "avgPerArrayMs": 0.0279,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 3.18,
-      "avgPerArrayMs": 0.0318,
+      "durationMs": 2.49,
+      "avgPerArrayMs": 0.0249,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 6.94,
-      "avgPerArrayMs": 0.0694,
+      "durationMs": 5.38,
+      "avgPerArrayMs": 0.0538,
       "success": true
     }
   ],
   "cleanup": [
     {
       "size": 100,
-      "durationMs": 0.45,
+      "durationMs": 0.52,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 2.85,
+      "durationMs": 1.37,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 23.37,
+      "durationMs": 13.13,
       "success": true
     }
   ]

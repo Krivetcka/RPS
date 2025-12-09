@@ -14,39 +14,30 @@ export function normalizeArrayInput(numbers) {
 export function lab2Sort(numbers) {
   const arr = normalizeArrayInput(numbers);
   const data = [...arr];
-  const size = data.length;
 
-  const swap = (i, j) => {
-    const temp = data[i];
-    data[i] = data[j];
-    data[j] = temp;
-  };
+  let gap = data.length;
+  const shrink = 1.3;
+  let sorted = false;
 
-  const heapify = (endIndex, parentIndex) => {
-    let largest = parentIndex;
-    const left = 2 * parentIndex + 1;
-    const right = 2 * parentIndex + 2;
-
-    if (left <= endIndex && data[left] > data[largest]) {
-      largest = left;
-    }
-    if (right <= endIndex && data[right] > data[largest]) {
-      largest = right;
+  while (!sorted) {
+    // уменьшение шага
+    gap = Math.floor(gap / shrink);
+    if (gap <= 1) {
+      gap = 1;
+      sorted = true;
     }
 
-    if (largest !== parentIndex) {
-      swap(parentIndex, largest);
-      heapify(endIndex, largest);
+    // проход по массиву
+    let i = 0;
+    while (i + gap < data.length) {
+      if (data[i] > data[i + gap]) {
+        const temp = data[i];
+        data[i] = data[i + gap];
+        data[i + gap] = temp;
+        sorted = false;
+      }
+      i++;
     }
-  };
-
-  for (let i = Math.floor(size / 2) - 1; i >= 0; i -= 1) {
-    heapify(size - 1, i);
-  }
-
-  for (let end = size - 1; end > 0; end -= 1) {
-    swap(0, end);
-    heapify(end - 1, 0);
   }
 
   return data;
