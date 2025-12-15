@@ -1,20 +1,50 @@
+
 import React from "react";
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { api } from './api';
 
 function parseManualArray(input) {
-  return input
-    .split(/[,\s]+/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((value) => {
-      const asNumber = Number(value);
-      if (!Number.isFinite(asNumber)) {
-        throw new Error(`"${value}" is not a valid number`);
-      }
-      return Math.trunc(asNumber);
-    });
+  const trimmedInput = input.trim();
+  if (!trimmedInput) {
+    throw new Error('Введите хотя бы одно число');
+  }
+  
+  const parts = trimmedInput.split(/[,\s]+/);
+  const result = [];
+  const errors = [];
+  
+  parts.forEach((part, index) => {
+    const trimmedPart = part.trim();
+    if (trimmedPart === '') return;
+    
+    const asNumber = Number(trimmedPart);
+    if (!Number.isFinite(asNumber)) {
+      errors.push(`"${trimmedPart}" (позиция ${index + 1}) не является числом`);
+      return;
+    }
+    
+    if (asNumber < -1000000 || asNumber > 1000000) {
+      errors.push(`Число ${asNumber} (позиция ${index + 1}) выходит за пределы (-1,000,000 до 1,000,000)`);
+      return;
+    }
+    
+    result.push(Math.trunc(asNumber));
+  });
+  
+  if (errors.length > 0) {
+    throw new Error(`Ошибки в массиве:\n${errors.join('\n')}`);
+  }
+  
+  if (result.length === 0) {
+    throw new Error('Не найдено ни одного корректного числа');
+  }
+  
+  if (result.length > 10000) {
+    throw new Error(`Слишком много элементов (${result.length}). Максимум: 10,000`);
+  }
+  
+  return result;
 }
 
 function generateRandomArray({ length, min, max }) {
@@ -90,6 +120,7 @@ function ArrayWorkbench({
 }) {
   const [mode, setMode] = useState('manual');
   const [manualInput, setManualInput] = useState('9, 3, 7, 1, 8');
+  const [manualError, setManualError] = useState('');
   const [randomOptions, setRandomOptions] = useState({ length: 10, min: 0, max: 100 });
   const [saveOriginal, setSaveOriginal] = useState(true);
   const [saveSorted, setSaveSorted] = useState(true);
@@ -99,10 +130,32 @@ function ArrayWorkbench({
   const preview = useMemo(() => {
     try {
       if (mode === 'manual') {
-        return parseManualArray(manualInput);
+        const parsed = parseManualArray(manualInput);
+        setManualError('');
+        return parsed;
       }
-      return generateRandomArray(randomOptions);
+      const generated = generateRandomArray(randomOptions);
+      
+      // Валидация случайного массива
+      if (generated.length === 0) {
+        setManualError('Невозможно сгенерировать массив с указанными параметрами');
+        return [];
+      }
+      if (randomOptions.min < -1000000 || randomOptions.max > 1000000) {
+        setManualError('Диапазон значений выходит за допустимые пределы (-1,000,000 до 1,000,000)');
+        return [];
+      }
+      if (randomOptions.length > 10000) {
+        setManualError('Количество элементов не должно превышать 10,000');
+        return [];
+      }
+      
+      setManualError('');
+      return generated;
     } catch (error) {
+      if (mode === 'manual') {
+        setManualError(error.message);
+      }
       return [];
     }
   }, [manualInput, mode, randomOptions]);
@@ -110,15 +163,37 @@ function ArrayWorkbench({
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (disabled) return;
+    
+    // Проверка валидации перед отправкой
+    if (manualError && mode === 'manual') {
+      return;
+    }
+    
+    if (preview.length === 0) {
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
-      const numbers = mode === 'manual' ? parseManualArray(manualInput) : generateRandomArray(randomOptions);
-      await processArray({ numbers, label, saveOriginal, saveSorted });
+      
+      // Создаем копию массива для отправки
+      let numbersToSend;
       if (mode === 'manual') {
-        setManualInput(numbers.join(', '));
+        numbersToSend = parseManualArray(manualInput);
+      } else {
+        numbersToSend = generateRandomArray(randomOptions);
       }
+      
+      // Отправляем копию массива, сохраняя preview неизменным
+      await processArray({ 
+        numbers: [...numbersToSend], 
+        label, 
+        saveOriginal, 
+        saveSorted 
+      });
+      
     } catch (error) {
-      // ошибки обрабатываются выше
+      // Ошибки уже обрабатываются в processArray
     } finally {
       setIsSubmitting(false);
     }
@@ -131,26 +206,64 @@ function ArrayWorkbench({
         <div className="field-group">
           <label>Способ ввода</label>
           <div className="segmented">
-            <button type="button" className={mode === 'manual' ? 'active' : ''} onClick={() => setMode('manual')}>
+            <button type="button" className={mode === 'manual' ? 'active' : ''} onClick={() => {
+              setMode('manual');
+              setManualError('');
+            }}>
               Клавиатура
             </button>
-            <button type="button" className={mode === 'random' ? 'active' : ''} onClick={() => setMode('random')}>
+            <button type="button" className={mode === 'random' ? 'active' : ''} onClick={() => {
+              setMode('random');
+              setManualError('');
+            }}>
               Случайно
             </button>
           </div>
         </div>
 
         {mode === 'manual' ? (
-          <label className="field-group">
-            Массив через запятую
-            <textarea
-              value={manualInput}
-              onChange={(event) => setManualInput(event.target.value)}
-              placeholder="Например: 9, 3, 7"
-              rows={4}
-              required
-            />
-          </label>
+          <div className="field-group">
+            <label>
+              Массив через запятую
+              <textarea
+                value={manualInput}
+                onChange={(event) => {
+                  setManualInput(event.target.value);
+                  // Сбрасываем ошибку при изменении
+                  if (manualError) {
+                    try {
+                      parseManualArray(event.target.value);
+                      setManualError('');
+                    } catch {
+                      // Ошибка останется до следующего вычисления preview
+                    }
+                  }
+                }}
+                placeholder="Например: 9, 3, 7, -5, 42"
+                rows={4}
+                required
+                className={manualError ? 'input-error' : ''}
+              />
+            </label>
+            {manualError && (
+              <div className="error-message">
+                <small style={{ color: '#dc2626', fontSize: '0.875rem', whiteSpace: 'pre-line' }}>
+                  ⚠️ {manualError}
+                </small>
+              </div>
+            )}
+            <div className="validation-hint">
+              <small>
+                Правила ввода:
+                <ul>
+                  <li>Числа разделяются запятыми или пробелами</li>
+                  <li>Допустимый диапазон: от -1,000,000 до 1,000,000</li>
+                  <li>Максимум 10,000 элементов</li>
+                  <li>Дробные числа будут округлены до целых</li>
+                </ul>
+              </small>
+            </div>
+          </div>
         ) : (
           <div className="random-options">
             <label>
@@ -158,11 +271,12 @@ function ArrayWorkbench({
               <input
                 type="number"
                 min="1"
-                max="1000"
+                max="10000"
                 value={randomOptions.length}
-                onChange={(event) =>
-                  setRandomOptions((prev) => ({ ...prev, length: Number(event.target.value) || 1 }))
-                }
+                onChange={(event) => {
+                  const value = Math.max(1, Math.min(10000, Number(event.target.value) || 1));
+                  setRandomOptions((prev) => ({ ...prev, length: value }));
+                }}
               />
             </label>
             <label>
@@ -170,9 +284,12 @@ function ArrayWorkbench({
               <input
                 type="number"
                 value={randomOptions.min}
-                onChange={(event) =>
-                  setRandomOptions((prev) => ({ ...prev, min: Number(event.target.value) || 0 }))
-                }
+                onChange={(event) => {
+                  const value = Number(event.target.value) || 0;
+                  setRandomOptions((prev) => ({ ...prev, min: Math.max(-1000000, value) }));
+                }}
+                min="-1000000"
+                max="1000000"
               />
             </label>
             <label>
@@ -180,11 +297,21 @@ function ArrayWorkbench({
               <input
                 type="number"
                 value={randomOptions.max}
-                onChange={(event) =>
-                  setRandomOptions((prev) => ({ ...prev, max: Number(event.target.value) || 0 }))
-                }
+                onChange={(event) => {
+                  const value = Number(event.target.value) || 0;
+                  setRandomOptions((prev) => ({ ...prev, max: Math.min(1000000, value) }));
+                }}
+                min="-1000000"
+                max="1000000"
               />
             </label>
+            {randomOptions.min > randomOptions.max && (
+              <div className="error-message" style={{ gridColumn: '1 / -1' }}>
+                <small style={{ color: '#dc2626', fontSize: '0.875rem' }}>
+                  ⚠️ Минимальное значение не должно превышать максимальное
+                </small>
+              </div>
+            )}
           </div>
         )}
 
@@ -205,11 +332,29 @@ function ArrayWorkbench({
         </div>
 
         <div className="summary-panel">
-          <p>
-            <strong>Предпросмотр:</strong> {preview.slice(0, 20).join(', ')}
-            {preview.length > 20 && ' …'}
-          </p>
-          <button type="submit" disabled={disabled || isSubmitting}>
+          <div>
+            <p>
+              <strong>Предпросмотр:</strong> {preview.slice(0, 20).join(', ')}
+              {preview.length > 20 && ' …'}
+            </p>
+            <p>
+              <small>
+                Элементов: {preview.length}
+                {preview.length >= 10000 && ' (максимум)'}
+              </small>
+            </p>
+            {preview.length > 0 && (
+              <p>
+                <small>
+                  Диапазон: {Math.min(...preview)} … {Math.max(...preview)}
+                </small>
+              </p>
+            )}
+          </div>
+          <button 
+            type="submit" 
+            disabled={disabled || isSubmitting || (mode === 'manual' && manualError) || preview.length === 0 || (mode === 'random' && randomOptions.min > randomOptions.max)}
+          >
             {isSubmitting ? 'Обработка…' : 'Отсортировать и сохранить'}
           </button>
         </div>
@@ -364,11 +509,24 @@ function App() {
       setStatus({ type: 'error', message: 'Сначала авторизуйтесь' });
       throw new Error('Нет токена');
     }
+    
+    // Сохраняем оригинальный массив ДО отправки
+    const originalNumbers = [...numbers];
+    
+    // Дополнительная валидация перед отправкой
     if (!saveOriginal && !saveSorted) {
       const message = 'Выберите хотя бы один вариант сохранения';
       setStatus({ type: 'error', message });
       throw new Error(message);
     }
+    
+    // Проверка массива через api.validateArray
+    const validation = api.validateArray(numbers);
+    if (!validation.valid) {
+      setStatus({ type: 'error', message: validation.message });
+      throw new Error(validation.message);
+    }
+    
     setStatus({ type: 'info', message: 'Проводится сортировка массива...' });
     try {
       const result = await api.processArray(token, {
@@ -377,14 +535,30 @@ function App() {
         saveOriginal,
         saveSorted,
       });
-      setLastProcessing({ original: numbers, sorted: result.sorted, saved: result.saved });
+      
+      // Используем сохраненный оригинальный массив
+      setLastProcessing({ 
+        original: originalNumbers, 
+        sorted: result.sorted, 
+        saved: result.saved 
+      });
+      
       setStatus({ type: 'success', message: 'Массив успешно обработан' });
       if (result.saved) {
         loadArrays();
       }
       return result;
     } catch (error) {
-      setStatus({ type: 'error', message: error.message });
+      // Улучшенное отображение ошибок от сервера
+      let errorMessage = error.message;
+      if (error.message.includes('Failed to process array') || error.message.includes('Provide at least one number')) {
+        errorMessage = 'Ошибка обработки массива. Проверьте корректность введённых данных.';
+      } else if (error.message.includes('Array must contain only finite numbers')) {
+        errorMessage = 'Массив должен содержать только корректные числа.';
+      } else if (error.message.includes('numbers must be an array')) {
+        errorMessage = 'Входные данные должны быть массивом чисел.';
+      }
+      setStatus({ type: 'error', message: errorMessage });
       throw error;
     }
   };

@@ -1,57 +1,57 @@
 {
   "database": "C:\\Users\\rusla\\Desktop\\Лаб3\\tests\\data\\integration.db",
-  "createdAt": "2025-12-09T17:56:25.142Z",
+  "createdAt": "2025-12-15T14:13:19.295Z",
   "insert": [
     {
       "size": 100,
-      "durationMs": 4.73,
+      "durationMs": 6.04,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 26.62,
+      "durationMs": 23.55,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 293.56,
+      "durationMs": 348.89,
       "success": true
     }
   ],
   "fetchSort": [
     {
       "size": 100,
-      "durationMs": 2.79,
-      "avgPerArrayMs": 0.0279,
+      "durationMs": 2.22,
+      "avgPerArrayMs": 0.0222,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 2.49,
-      "avgPerArrayMs": 0.0249,
+      "durationMs": 3.07,
+      "avgPerArrayMs": 0.0307,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 5.38,
-      "avgPerArrayMs": 0.0538,
+      "durationMs": 9.67,
+      "avgPerArrayMs": 0.0967,
       "success": true
     }
   ],
   "cleanup": [
     {
       "size": 100,
-      "durationMs": 0.52,
+      "durationMs": 0.36,
       "success": true
     },
     {
       "size": 1000,
-      "durationMs": 1.37,
+      "durationMs": 2.09,
       "success": true
     },
     {
       "size": 10000,
-      "durationMs": 13.13,
+      "durationMs": 25.29,
       "success": true
     }
   ]

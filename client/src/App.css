@@ -23,6 +23,34 @@ header p {
   color: #4b5563;
 }
 
+.input-error {
+    border-color: #dc2626 !important;
+    background-color: #fef2f2 !important;
+}
+
+.error-message {
+    margin-top: 0.25rem;
+    padding: 0.5rem;
+    background-color: #fef2f2;
+    border-radius: 6px;
+    border-left: 4px solid #dc2626;
+}
+
+.validation-hint {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+    .validation-hint ul {
+        margin: 0.25rem 0;
+        padding-left: 1.25rem;
+    }
+
+.random-options input:invalid {
+    border-color: #dc2626;
+}
+
 .user-info {
   display: flex;
   align-items: center;
